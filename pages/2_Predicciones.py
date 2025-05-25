@@ -38,12 +38,25 @@ def cargar_datos():
     try:
         query = "SELECT * FROM tarifas_acueductos_aguas_residuales_med_ing_caracteristicas"
         df = pd.read_sql(query, engine)
-        df['Fecha'] = pd.to_datetime(df['Fecha'])
+        
+        # Convertir la columna fecha a datetime
+        df['Fecha'] = pd.to_datetime(df['fecha'])
+        
+        # Renombrar columnas para mantener compatibilidad
+        df = df.rename(columns={
+            'municipio': 'Municipio',
+            'estrato': 'Estrato',
+            'servicio': 'Servicio',
+            'Cargo Fijo': 'Cargo Fijo',
+            'Cargo por Consumo': 'Cargo por Consumo',
+            'año': 'Año'
+        })
+        
         return df
     except Exception as e:
         st.error("Error al cargar los datos desde la base de datos.")
         st.exception(e)
-        return pd.DataFrame()  
+        return pd.DataFrame()
 
 
 

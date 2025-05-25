@@ -29,9 +29,12 @@ def crear_engine():
         DB_PORT = os.getenv("DB_PORT")
         DB_NAME = os.getenv("DB_NAME")
 
-        return create_engine(f'postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
+        # URL de conexión para Supabase
+        DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        
+        return create_engine(DATABASE_URL)
     except Exception as e:
-        st.error("Error al conectar con la base de datos.")
+        st.error(f"Error al conectar con la base de datos: {str(e)}")
         st.stop()
 
 engine = crear_engine()
@@ -41,14 +44,44 @@ engine = crear_engine()
 @st.cache_data
 def cargar_datos():
     try:
+        # Primero, veamos la estructura de la tabla
+        query_structure = """
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'tarifas_acueductos_aguas_residuales_med_ing_caracteristicas'
+            ORDER BY ordinal_position;
+        """
+        df_structure = pd.read_sql(query_structure, engine)
+        print("Estructura de la tabla:", df_structure)
+        
+        # Ahora cargamos los datos
         query = "SELECT * FROM tarifas_acueductos_aguas_residuales_med_ing_caracteristicas"
         df = pd.read_sql(query, engine)
-        df['Fecha'] = pd.to_datetime(df['Fecha'])
+        
+        # Convertir la columna fecha a datetime
+        if 'Fecha' in df.columns:
+            df['Fecha'] = pd.to_datetime(df['Fecha'])
+        elif 'fecha' in df.columns:
+            df['Fecha'] = pd.to_datetime(df['fecha'])
+        else:
+            st.error(f"No se encontró la columna de fecha. Columnas disponibles: {df.columns.tolist()}")
+            st.stop()
+        
+        # Renombrar columnas para mantener compatibilidad
+        df = df.rename(columns={
+            'municipio': 'Municipio',
+            'estrato': 'Estrato',
+            'servicio': 'Servicio',
+            'Cargo Fijo': 'Cargo Fijo',
+            'Cargo por Consumo': 'Cargo por Consumo',
+            'año': 'Año'
+        })
+            
         return df
     except Exception as e:
         st.error("Error al cargar los datos desde la base de datos.")
         st.exception(e)
-        return pd.DataFrame()  
+        return pd.DataFrame()
 
 df_real = cargar_datos()
 
@@ -58,7 +91,7 @@ if df_real.empty:
 
 requeridas = ['Fecha', 'Municipio', 'Estrato', 'Servicio', 'Cargo Fijo']
 if not all(col in df_real.columns for col in requeridas):
-    st.error("La base de datos no contiene todas las columnas necesarias.")
+    st.error(f"La base de datos no contiene todas las columnas necesarias. Columnas disponibles: {df_real.columns.tolist()}")
     st.stop()
 #df_real = pd.read_excel("data/tarifas_con_indicadores_excel.xlsx")  # Ajusta la ruta si es necesario
 
