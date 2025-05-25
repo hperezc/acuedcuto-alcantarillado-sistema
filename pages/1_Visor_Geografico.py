@@ -101,10 +101,10 @@ def normalizar_nombre(texto):
 def cargar_datos():
     try:
         # Cargar shapefile de municipios
-        gdf_municipios = gpd.read_file('../data/shp/municipios.shp')
+        gdf_municipios = gpd.read_file('data/shp/municipios.shp')
         
         # Cargar datos de tarifas e indicadores
-        df_tarifas = pd.read_csv('../data/tarifas_con_indicadores.csv')
+        df_tarifas = pd.read_csv('data/tarifas_con_indicadores.csv')
         
         # Normalizar nombres de municipios
         gdf_municipios['MpNombre_norm'] = gdf_municipios['MpNombre'].apply(normalizar_nombre)
